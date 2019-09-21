@@ -1,134 +1,118 @@
 <template>
   <div class="col-md-12">
-    <!-- <load-bar :quoteCount='quotes.length' :maxQuotes='maxQuotes'>
-      <div :style="{width:percent*10+'%'}" class="cocuk">{{percent}}/10</div>
-    </load-bar>
-    <p>Add A new Quote</p>
-    <div>
-      <textarea id="inputText" @change.prevent="setQuote" required class="text"></textarea>
-      <button @click.prevent="addNewQuote">New Quote</button>
-    </div>-->
-    <!-- <app-quote  v-for="(quo, index) in quotes" :key="quo" :quote="quo" @click.native="deleteQuote(index)" /> -->
     <div class="col-md-12">
-      <app-quote
-        v-for="(quo,index) in selectedQuotes"
-        :key="quo+''+index"
-        :quote="quo"
-        @click.native="getQuo(index)"
+      <card-number
+        v-for="(number,index) in initialNumberArray"
+        :number="number"
+        :index="index"
+        :key="index"
+        @setNumberSelected="setSelectedNumber"
+        :isMatched="isThisCardMatched(index)"
+        :open="isThisCardOpen(index)"
       />
     </div>
-    <button @click="getArray">Refresh Game</button>
+    <button @click="refreshGame">Refresh Game</button>
   </div>
 </template>
-
 <script>
-var Quote = require("./Components/Quote.vue");
-var LoadBarVue = require("./Components/LoadBar.vue");
+import CardNumber from "./Components/CardNumber.vue";
 export default {
   components: {
-    appQuote: Quote,
-    loadBar: LoadBarVue
+    CardNumber
   },
-  data: function() {
+  data() {
     return {
-      quotes: [],
-
-      quoYek: null,
-      quoDu: null,
-
-      firstIndex: -1,
-      secondIndex: -1
+      initialNumberArray: [],
+      selectedCard1: null,
+      selectedCard2: null,
+      error: null,
+      matchedCards: []
     };
   },
-  created: function() {
-    this.getArray();
-  },
-  computed: {
-    selectedQuotes() {
-      if (this.firstIndex != this.secondIndex) {
-        if (
-          this.firstIndex > -1 &&
-          this.secondIndex > -1 &&
-          this.firstIndex != this.secondIndex
-        ) {
-          if (this.quoYek == this.quoDu) {
-            this.quotes.splice(this.firstIndex, 1);
-            if (this.secondIndex > this.firstIndex) {
-              this.quotes.splice(this.secondIndex - 1, 1);
-            } else {
-              this.quotes.splice(this.secondIndex, 1);
-            }
-
-            this.reset();
-            return this.quotes;
-          } else {
-            this.quotes=this.quotes;
-            this.reset();
-            return this.quotes
-          }
-        } else {
-          return this.quotes;
-        }
-      } else {
-        this.reset();
-        return this.quotes;
-      }
-    }
+  created() {
+    this.refreshGame();
   },
   methods: {
-    addNewQuote: function() {
-      if (this.quotes.length < 20) {
-        this.quotes.push(this.currentQuote);
-        this.percent++;
-        document.getElementById("inputText").value = "";
-        this.currentQuote = "";
-      } else {
-        alert("You can not add more quotes, to delete one please click on it");
-      }
-    },
-    setQuote: function(event) {
-      this.currentQuote = event.target.value;
-    },
-    deleteQuote: function(index) {
-      this.quotes.splice(index, 1);
-      this.percent--;
-    },
-    reset: function() {
-      this.quoYek = null;
-      this.quoDu = null;
-      this.firstIndex = -1;
-      this.secondIndex = -1;
-    },
-    getQuo: function(index) {
-      if (!this.quoYek) {
-        this.quoYek = this.quotes[index];
-        this.firstIndex = index;
-      } else if (!this.quoDu) {
-        this.quoDu = this.quotes[index];
-        this.secondIndex = index;
-      }
-    },
-    getArray: function() {
-      const arr = Array(10)
+    getArray() {
+      const arr = new Array(12)
         .fill()
         .map(() => Math.round(Math.random() * 40));
-      this.quotes = arr.concat(arr);
-      (this.quoYek = null),
-        (this.quoDu = null),
-        (this.firstIndex = -1),
-        (this.secondIndex = -1);
+      return arr.concat(arr);
+    },
+    shuffle(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    },
+    refreshGame() {
+      this.initialNumberArray = [];
+      this.selectedCard1 = null;
+      this.selectedCard2 = null;
+      this.error = null;
+      this.matchedCards = [];
+      this.initialNumberArray = this.shuffle(this.getArray());
+    },
+    setSelectedNumber(cardObject) {
+      if (this.selectedCard1) {
+        if (this.selectedCard1.index !== cardObject.index) {
+          this.selectedCard2 = cardObject;
+        } else {
+          this.error = "Double click to the same Card !!";
+        }
+      } else {
+        this.selectedCard1 = cardObject;
+      }
+    },
+    resetSelectedNumbers() {
+      this.selectedCard1 = null;
+      this.selectedCard2 = null;
+    },
+    isThisCardMatched(index) {
+      return !!this.matchedCards.filter(card => card.index === index)[0];
+    },
+    isThisCardOpen(index) {
+      if (this.selectedCard2 && this.selectedCard2.index === index) {
+        var makeItWait;
+        makeItWait = setTimeout(() => {
+          if (this.areCardsMatching) {
+            this.matchedCards.push(this.selectedCard1);
+            this.matchedCards.push(this.selectedCard2);
+          }
+          this.resetSelectedNumbers();
+          return false;
+        }, 500);
+        return true;
+      }
+      return this.selectedCard1 && this.selectedCard1.index === index;
+      // return (this.selectedCard1 && this.selectedCard1.index === index) || (this.selectedCard2 && this.selectedCard2.index === index)
+    }
+  },
+  computed: {
+    areBothCardsSelected() {
+      return !!(this.selectedCard1 && this.selectedCard2);
+    },
+    areCardsMatching() {
+      return (
+        this.areBothCardsSelected &&
+        this.selectedCard1.number === this.selectedCard2.number
+      );
+    },
+    cardsAreNotMatching() {
+      return (
+        this.areBothCardsSelected &&
+        this.selectedCard1.number !== this.selectedCard2.number
+      );
+    },
+    isSecondCardChosen() {
+      return !!this.selectedCard2;
     }
   }
 };
 </script>
-<style scoped>
-div {
-  padding: 5%;
-  border: 1px solid gray;
-  border-radius: 10%;
-  width: 75%;
-  background-color: saddlebrown;
-  display: inline-block;
+<style>
+body {
+  font-size: 75px;
 }
 </style>
-
