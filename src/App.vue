@@ -1,24 +1,75 @@
 <template>
   <div class="col-md-12">
-    <div class="col-md-12">
-      <card-number
+    <div class="col-md-4">
+      <CycleSelect name="gameSelector" :options="games" @selected="setSelectedGame" />
+    </div>
+    <br />
+    <div class="col-md-8" v-if="isMemoryGame">
+      <card-game
+        name="number"
         v-for="(number,index) in initialNumberArray"
-        :number="number"
+        :card="number"
         :index="index"
         :key="index"
-        @setNumberSelected="setSelectedNumber"
+        @setCardSelected="setSelectedNumber"
         :isMatched="isThisCardMatched(index)"
         :open="isThisCardOpen(index)"
       />
     </div>
-    <button @click="refreshGame">Refresh Game</button>
+    <div class="col-md-8" v-if="isLanguageGame">
+      <div class="row">
+        <div class="col-md-6">
+          <template v-for="lang in languages">
+            <input
+              type="radio"
+              :id="lang.code"
+              name="firstLanguage"
+              :value="lang.code"
+              v-model="selectedLanguage1"
+              :key="lang.code"
+            />
+            <label class="language" :key="lang.language" :for="lang.code">{{lang.language}}</label>
+          </template>
+        </div>
+        <div class="col-md-6">
+          <template v-for="lang in languages.filter(lang=>lang.code!==selectedLanguage1)">
+            <input
+              v-if="selectedLanguage1"
+              type="radio"
+              :id="lang.code"
+              name="secondLanguage"
+              :value="lang.code"
+              v-model="selectedLanguage2"
+              :key="lang.code"
+            />
+            <label class="language" :key="lang.language" :for="lang.code">{{lang.language}}</label>
+          </template>
+        </div>
+      </div>
+      <template v-if="selectedLanguage1 && selectedLanguage2">
+        <card-game
+          name="word"
+          v-for="(word,index) in wordCombinations"
+          :card="word"
+          :index="index"
+          :key="index"
+          @setCardSelected="setSelectedNumber"
+          :isMatched="isThisCardMatched(index)"
+          :open="isThisCardOpen(index)"
+        />
+      </template>
+    </div>
+    <button v-if="selectedGame" @click="refreshGame">Refresh Game</button>
   </div>
 </template>
 <script>
-import CardNumber from "./Components/CardNumber.vue";
+import { Games, Dictionary, Languages } from "./Constants/GameConstants";
+import CardGame from "./Components/CardGame.vue";
+import CycleSelect from "./Components/CycleSelect.vue";
 export default {
   components: {
-    CardNumber
+    CardGame,
+    CycleSelect
   },
   data() {
     return {
@@ -26,7 +77,13 @@ export default {
       selectedCard1: null,
       selectedCard2: null,
       error: null,
-      matchedCards: []
+      matchedCards: [],
+      games: Games,
+      languages: Languages,
+      dictionary: Dictionary,
+      selectedGame: null,
+      selectedLanguage1: 'TR',
+      selectedLanguage2: null
     };
   },
   created() {
@@ -34,9 +91,10 @@ export default {
   },
   methods: {
     getArray() {
-      const arr = new Array(12)
-        .fill()
-        .map(() => Math.round(Math.random() * 40));
+      const arr = new Array(12).fill().map(() => {
+        const randomNumber = Math.round(Math.random() * 40);
+        return { text: randomNumber, visualText: randomNumber };
+      });
       return arr.concat(arr);
     },
     shuffle(a) {
@@ -87,6 +145,10 @@ export default {
       }
       return this.selectedCard1 && this.selectedCard1.index === index;
       // return (this.selectedCard1 && this.selectedCard1.index === index) || (this.selectedCard2 && this.selectedCard2.index === index)
+    },
+    setSelectedGame(gameId) {
+      this.selectedGame = gameId;
+      this.refreshGame();
     }
   },
   computed: {
@@ -96,23 +158,45 @@ export default {
     areCardsMatching() {
       return (
         this.areBothCardsSelected &&
-        this.selectedCard1.number === this.selectedCard2.number
+        this.selectedCard1.card.text === this.selectedCard2.card.text
       );
     },
     cardsAreNotMatching() {
       return (
         this.areBothCardsSelected &&
-        this.selectedCard1.number !== this.selectedCard2.number
+        this.selectedCard1.card.text !== this.selectedCard2.card.text
       );
     },
     isSecondCardChosen() {
       return !!this.selectedCard2;
+    },
+    isMemoryGame() {
+      return this.selectedGame === "Memory";
+    },
+    isLanguageGame() {
+      return this.selectedGame === "Language";
+    },
+    wordCombinations() {
+      let translated = [];
+      this.dictionary.map(words => {
+        translated.push({
+          // shows english word
+          text: words[this.selectedLanguage1],
+          visualText: words[this.selectedLanguage2]
+        });
+        translated.push({
+          //shows turkish word
+          text: words[this.selectedLanguage1],
+          visualText: words[this.selectedLanguage1]
+        });
+      });
+      return this.shuffle(translated);
     }
   }
 };
 </script>
 <style>
-body {
-  font-size: 75px;
+.language {
+  font-size: 18px;
 }
 </style>
