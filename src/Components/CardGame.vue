@@ -2,19 +2,19 @@
   <button
     :class="isMatched?'Matched':''"
     :disabled="isMatched"
-    class="CardNumber"
+    class="CardGame"
     @click="setSelected"
   >
     <span v-if="isMatched" class="glyphicon glyphicon-ok-sign"></span>
-    <span v-else :class="open?'Open':'Closed'">{{number}}</span>
+    <span v-else :class="open?'Open':'Closed'">{{card.visualText}}</span>
   </button>
 </template>
 <script>
 export default {
-  name: "CardNumber",
+  name: "CardGame",
   props: {
-    number: {
-      type: Number
+    card: {
+      type: [Object]
     },
     index: {
       type: Number
@@ -28,8 +28,8 @@ export default {
   },
   methods: {
     setSelected() {
-      this.$emit("setNumberSelected", {
-        number: this.number,
+      this.$emit("setCardSelected", {
+        card: this.card,
         index: this.index
       });
     }
@@ -37,7 +37,7 @@ export default {
 };
 </script>
 <style>
-.CardNumber {
+.CardGame {
   height: 200px;
   width: 200px;
   background: yellow;
